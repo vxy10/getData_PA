@@ -1,0 +1,116 @@
+---
+title: "PeerAssessment"
+author: "Vivek Yadav"
+date: "Tuesday, September 16, 2014"
+output: html_document
+---
+
+# Overall steps
+Below are steps to tidy data from the raw files. I have included R-code also for documentation. The same code is available for download in run_analysis.R file. 
+
+1. Read data sets
+2. Read features 
+3. Read activity labels, and assign activity labels to corresponding activity code
+4. Get features containing mean and std of variables. Included mean of frequency do main variables also.
+5. Create test and training data sets.
+6. Merge data sets.
+7. Take aggregate
+8. Remove redundant columns and write to table
+
+```{r message=FALSE, eval=FALSE}
+library(dplyr)
+```
+# 1: Read data sets
+## reading test data
+
+```{r message=FALSE, eval=FALSE}
+xtest = read.table('./UCI HAR Dataset/test/X_test.txt', 
+                   header = FALSE,stringsAsFactors = FALSE)
+ytest = read.table('./UCI HAR Dataset/test/Y_test.txt', 
+                   header = FALSE,stringsAsFactors = FALSE)
+subtest = read.table('./UCI HAR Dataset/test/subject_test.txt', 
+                      header = FALSE,stringsAsFactors = FALSE)
+```
+
+## reading train data  
+```{r message=FALSE, eval=FALSE}
+xtrain = read.table('./UCI HAR Dataset/train/X_train.txt', 
+                   header = FALSE,stringsAsFactors = FALSE)
+ytrain = read.table('./UCI HAR Dataset/train/Y_train.txt', 
+                   header = FALSE,stringsAsFactors = FALSE)
+subtrain = read.table('./UCI HAR Dataset/train/subject_train.txt', 
+                      header = FALSE,stringsAsFactors = FALSE)
+```
+# 2:reading features
+
+```{r message=FALSE, eval=FALSE}
+features = read.table('./UCI HAR Dataset/features.txt', 
+                    header = FALSE,stringsAsFactors = FALSE)
+```
+
+# 3: reading Activity labels
+```{r message=FALSE, eval=FALSE}
+ActivityLabels = read.table('./UCI HAR Dataset/Activity_labels.txt', 
+                      header = FALSE,stringsAsFactors = FALSE)
+ActivityLabels_train = subtrain
+for (i in ActivityLabels$V1) { ActivityLabels_train[i==ytrain] =  ActivityLabels$V2[i] }
+
+ActivityLabels_test = subtest
+for (i in ActivityLabels$V1) { ActivityLabels_test[i==ytest] =  ActivityLabels$V2[i] }
+```
+
+# 4: getting features with mean and std. Took mean and std before to store fewer numbers.
+```{r message=FALSE, eval=FALSE}
+mean_ind<-grep("mean()",features$V2) # did not use fixed = TRUE to include mean of frequency data also.
+std_ind<-grep("std()",features$V2)
+```
+# 5a: creating test data
+```{r message=FALSE, eval=FALSE}
+## added 4 new columns to quantify subject, Activity, ActivityLabel, and dataType (test/train)
+data_test<- data.frame(subtest,ytest,ActivityLabels_test,
+                       rep("test", times = dim(ytest)[1]),xtest[,mean_ind],
+                       xtest[,std_ind])
+```
+## adding column names
+```{r message=FALSE, eval=FALSE}
+colnames(data_test)<-c("subject","Activity","ActivityLabel"
+                       ,"dataType",features$V2[mean_ind],
+             features$V2[std_ind])
+```
+
+# 5b: creating train data
+```{r message=FALSE, eval=FALSE}
+data_train<- data.frame(subtrain,ytrain,ActivityLabels_train,
+                        rep("train", times = dim(ytrain)[1]),
+                        xtrain[,mean_ind],
+                       xtrain[,std_ind])
+```
+
+## adding column names
+```{r message=FALSE, eval=FALSE}
+colnames(data_train)<-c("subject","Activity","ActivityLabel"
+                        ,"dataType",features$V2[mean_ind],
+                       features$V2[std_ind])
+```
+# 6: Merging data sets data
+```{r message=FALSE, eval=FALSE}
+data_all<-rbind(data_test,data_train) # dataset with test and train data combined.
+```
+# 7: taking aggregate
+```{r message=FALSE, eval=FALSE}
+aggdata <-aggregate(data_all, by=list(subject = data_all$subject , Activity =  data_all$Activity,
+                                      ActivityLabel =  data_all$ActivityLabel,
+                                      dataType = data_all$dataType), 
+                                      FUN=mean,rm.na = T)
+```
+
+# 8: removing redundant columns and write
+```{r message=FALSE, eval=FALSE}
+aggdata<-aggdata[,-c(5:8)]
+write.table(aggdata,"TidyAveragedActivityData.txt",row.name=FALSE)
+```
+
+# read using 
+```{r message=FALSE, eval=FALSE}
+data_agg<- read.table('TidyAveragedActivityData.txt',header=TRUE)
+```
