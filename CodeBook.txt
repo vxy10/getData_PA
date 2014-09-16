@@ -1,3 +1,5 @@
+This file reports the means of measurements summerized by subject and activity. The details of each entry in table are given below. 
+
 Catagorical variables
 ====================
 
